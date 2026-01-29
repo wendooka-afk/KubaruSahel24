@@ -42,7 +42,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onBack }) => {
 
       <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-12 w-full max-w-md relative z-10 animate-fade-in border border-white/10">
         <div className="text-center mb-10">
-          <img src="/Logo Kubaru Sahel 24.png" alt="Kubaru Sahel 24 Admin" className="h-16 w-auto mx-auto mb-6" />
+          <img src="/logo.png" alt="Kubaru Sahel 24 Admin" className="h-16 w-auto mx-auto mb-6" />
           <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Portail de Gestion Sécurisé</p>
         </div>
 

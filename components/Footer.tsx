@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
       <Container size="full">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="md:col-span-1">
-            <img src="/Logo Kubaru Sahel 24.png" alt="Kubaru Sahel 24" className="h-16 w-auto mb-6 bg-white/10 rounded-lg p-2" />
+            <img src="/logo.png" alt="Kubaru Sahel 24" className="h-16 w-auto mb-6 bg-white/10 rounded-lg p-2" />
             <p className="text-blue-100 text-sm leading-relaxed mb-6">{t('footer.brandDesc')}</p>
             <div className="flex gap-4">
               <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-secondary transition-colors"><Facebook size={16} /></a>

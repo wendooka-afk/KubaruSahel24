@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
 
             <Link to="/" className="flex items-center group">
               <img
-                src="/Logo Kubaru Sahel 24.png"
+                src="/logo.png"
                 alt="Kubaru Sahel 24"
                 className="h-12 md:h-16 w-auto transition-transform group-hover:scale-[1.02]"
               />

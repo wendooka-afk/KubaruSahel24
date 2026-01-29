@@ -23,7 +23,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, currentView,
       {/* Sidebar */}
       <aside className="w-64 bg-primary text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-white/10">
-          <img src="/Logo Kubaru Sahel 24.png" alt="Kubaru Sahel 24 Admin" className="h-10 w-auto bg-white/10 rounded p-1" />
+          <img src="/logo.png" alt="Kubaru Sahel 24 Admin" className="h-10 w-auto bg-white/10 rounded p-1" />
         </div>
         <nav className="flex-grow p-4 space-y-2">
           {menu.map(item => (
