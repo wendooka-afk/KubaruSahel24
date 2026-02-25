@@ -25,9 +25,12 @@ import NewVideoPage from './pages/admin/videos/NewVideoPage';
 import TeamListPage from './pages/admin/team/TeamListPage';
 import TeamFormPage from './pages/admin/team/TeamFormPage';
 import CommentsManagementPage from './pages/admin/comments/CommentsManagementPage';
+import SettingsPage from './pages/admin/SettingsPage';
+import EditArticlePage from './pages/admin/articles/EditArticlePage';
 
 import ScrollToTop from './components/ScrollToTop';
 import { ToastProvider } from './components/Toast';
+import { saveData, loadData, migrateFromLocalStorage, STORAGE_VERSION } from './utils/storage';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
 import {
@@ -57,11 +60,11 @@ const AppContent: React.FC = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
 
-  // Initialisation sécurisée des données
-  const [articles, setArticles] = useState<Article[]>(() => language === 'en' ? ARTICLES_EN : ARTICLES_FR);
-  const [videos, setVideos] = useState<Video[]>(() => language === 'en' ? VIDEOS_EN : VIDEOS_FR);
-  const [authors, setAuthors] = useState<Record<string, Author>>(() => language === 'en' ? AUTHORS_EN : AUTHORS_FR);
-  const [comments, setComments] = useState<Comment[]>(() => language === 'en' ? COMMENTS_EN : COMMENTS_FR);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [authors, setAuthors] = useState<Record<string, Author>>({});
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isStorageReady, setIsStorageReady] = useState(false);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     try {
@@ -71,13 +74,61 @@ const AppContent: React.FC = () => {
     }
   });
 
-  // Mise à jour réactive lors du changement de langue
+  // Initialisation asynchrone d'IndexedDB
   useEffect(() => {
-    setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
-    setVideos(language === 'en' ? VIDEOS_EN : VIDEOS_FR);
-    setAuthors(language === 'en' ? AUTHORS_EN : AUTHORS_FR);
-    setComments(language === 'en' ? COMMENTS_EN : COMMENTS_FR);
+    const initStorage = async () => {
+      try {
+        // 1. Tenter la migration depuis localStorage si c'est le premier lancement avec IndexedDB
+        await migrateFromLocalStorage();
+
+        // 2. Charger les données depuis IndexedDB en fonction de la langue
+        const dataKey = `data_${STORAGE_VERSION}_${language}`;
+        const savedArticles = await loadData('articles', dataKey);
+        const savedVideos = await loadData('videos', dataKey);
+        const savedAuthors = await loadData('authors', dataKey);
+        const savedComments = await loadData('comments', dataKey);
+
+        // 3. Appliquer les données ou charger les mocks par défaut
+        setArticles(savedArticles || (language === 'en' ? ARTICLES_EN : ARTICLES_FR));
+        setVideos(savedVideos || (language === 'en' ? VIDEOS_EN : VIDEOS_FR));
+        setAuthors(savedAuthors || (language === 'en' ? AUTHORS_EN : AUTHORS_FR));
+        setComments(savedComments || (language === 'en' ? COMMENTS_EN : COMMENTS_FR));
+      } catch (e) {
+        console.error("Critical storage error:", e);
+        // Fallback ultime sur les mocks en cas de problème IndexedDB
+        setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
+      } finally {
+        setIsStorageReady(true);
+      }
+    };
+
+    initStorage();
   }, [language]);
+
+  // Sauvegarde persistante vers IndexedDB avec un léger délai pour grouper les changements
+  useEffect(() => {
+    if (!isStorageReady) return;
+    const timeout = setTimeout(() => saveData('articles', articles, `data_${STORAGE_VERSION}_${language}`), 1000);
+    return () => clearTimeout(timeout);
+  }, [articles, isStorageReady, language]);
+
+  useEffect(() => {
+    if (!isStorageReady) return;
+    const timeout = setTimeout(() => saveData('videos', videos, `data_${STORAGE_VERSION}_${language}`), 1000);
+    return () => clearTimeout(timeout);
+  }, [videos, isStorageReady, language]);
+
+  useEffect(() => {
+    if (!isStorageReady) return;
+    const timeout = setTimeout(() => saveData('authors', authors, `data_${STORAGE_VERSION}_${language}`), 1000);
+    return () => clearTimeout(timeout);
+  }, [authors, isStorageReady, language]);
+
+  useEffect(() => {
+    if (!isStorageReady) return;
+    const timeout = setTimeout(() => saveData('comments', comments, `data_${STORAGE_VERSION}_${language}`), 1000);
+    return () => clearTimeout(timeout);
+  }, [comments, isStorageReady, language]);
 
   const breakingNews = useMemo(() =>
     articles
@@ -99,6 +150,11 @@ const AppContent: React.FC = () => {
 
   const handleAddArticle = (newArticle: Article) => {
     setArticles(prev => [newArticle, ...prev]);
+    navigate('/admin/articles');
+  };
+
+  const handleUpdateArticle = (updatedArticle: Article) => {
+    setArticles(prev => prev.map(a => a.id === updatedArticle.id ? updatedArticle : a));
     navigate('/admin/articles');
   };
 
@@ -157,6 +213,17 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin') && location.pathname !== '/admin/login';
 
+  if (!isStorageReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-primary">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white font-bold tracking-widest text-sm uppercase animate-pulse">Initialisation...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <ScrollManager />
@@ -168,6 +235,7 @@ const AppContent: React.FC = () => {
             {/* Public Routes */}
             <Route path="/" element={<HomePage articles={articles} videos={videos} />} />
             <Route path="/category/:id" element={<CategoryPage articles={articles} />} />
+            {/* Fallback for old links or direct ID access if needed, though we prefer the above */}
             <Route path="/article/:id" element={<ArticlePage articles={articles} />} />
             <Route path="/webtv" element={<WebTVPage videos={videos} articles={articles} />} />
             <Route path="/authors" element={<AuthorsPage authors={Object.values(authors)} />} />
@@ -181,6 +249,10 @@ const AppContent: React.FC = () => {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/newsletter" element={<NewsletterPage />} />
 
+            {/* New SEO Friendly Route: /category-name/article-slug */}
+            {/* Placed after static routes to avoid conflicts */}
+            <Route path="/:category/:slug" element={<ArticlePage articles={articles} />} />
+
             {/* Admin Routes */}
             <Route path="/admin/login" element={
               <LoginPage onLogin={handleLogin} onBack={() => navigate('/')} />
@@ -191,6 +263,7 @@ const AppContent: React.FC = () => {
                 <DashboardPage
                   articles={articles}
                   videos={videos}
+                  comments={comments}
                   onNavigate={(view) => {
                     const paths: Record<string, string> = {
                       'ADMIN_DASHBOARD': '/admin',
@@ -199,7 +272,8 @@ const AppContent: React.FC = () => {
                       'ADMIN_VIDEOS': '/admin/videos',
                       'ADMIN_NEW_VIDEO': '/admin/videos/new',
                       'ADMIN_TEAM': '/admin/team',
-                      'ADMIN_COMMENTS': '/admin/comments'
+                      'ADMIN_COMMENTS': '/admin/comments',
+                      'ADMIN_SETTINGS': '/admin/settings'
                     };
                     navigate(paths[view] || '/admin');
                   }}
@@ -214,6 +288,7 @@ const AppContent: React.FC = () => {
                   onNavigate={(view) => navigate(view === 'ADMIN_NEW_ARTICLE' ? '/admin/articles/new' : '/admin')}
                   onLogout={handleLogout}
                   onDelete={handleDeleteArticle}
+                  onEdit={(id) => navigate(`/admin/articles/edit/${id}`)}
                 />
               </AdminRoute>
             } />
@@ -223,6 +298,16 @@ const AppContent: React.FC = () => {
                   onNavigate={() => navigate('/admin/articles')}
                   onLogout={handleLogout}
                   onSubmit={handleAddArticle}
+                />
+              </AdminRoute>
+            } />
+            <Route path="/admin/articles/edit/:id" element={
+              <AdminRoute isAdminLoggedIn={isAdminLoggedIn}>
+                <EditArticlePage
+                  articles={articles}
+                  onNavigate={() => navigate('/admin/articles')}
+                  onLogout={handleLogout}
+                  onSubmit={handleUpdateArticle}
                 />
               </AdminRoute>
             } />
@@ -272,11 +357,23 @@ const AppContent: React.FC = () => {
               <AdminRoute isAdminLoggedIn={isAdminLoggedIn}>
                 <CommentsManagementPage
                   comments={comments}
+                  articles={articles}
                   onNavigate={(view) => navigate('/admin')}
                   onLogout={handleLogout}
                   onApprove={handleApproveComment}
                   onReject={handleRejectComment}
                   onDelete={handleDeleteComment}
+                />
+              </AdminRoute>
+            } />
+
+            <Route path="/admin/settings" element={
+              <AdminRoute isAdminLoggedIn={isAdminLoggedIn}>
+                <SettingsPage
+                  articles={articles}
+                  comments={comments}
+                  onNavigate={(view) => navigate('/admin')}
+                  onLogout={handleLogout}
                 />
               </AdminRoute>
             } />

@@ -5,7 +5,7 @@ import Container from './Container';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Footer: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <footer className="bg-primary text-white pt-16 pb-8">
@@ -37,7 +37,7 @@ const Footer: React.FC = () => {
                 <li><Link to="/newsletter" className="hover:text-white transition-colors">{t('nav.newsletter')}</Link></li>
                 <li>
                   <Link to="/admin/login" className="flex items-center gap-2 text-blue-300 hover:text-secondary transition-colors mt-4 pt-4 border-t border-white/10">
-                    <Lock size={14} /> Espace Pro
+                    <Lock size={14} /> {t('footer.proArea')}
                   </Link>
                 </li>
               </ul>
@@ -48,7 +48,7 @@ const Footer: React.FC = () => {
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-blue-200">
           <p>© 2024 Kubaru Sahel 24. {t('footer.rights')}</p>
           <p style={{ fontFamily: "'Inter', sans-serif", color: "white" }}>
-            Conçu avec <span style={{ color: "red" }}>&#10084;</span> par <a href="https://wendooka.com" style={{ color: "white" }} target="_blank" rel="noopener noreferrer">wendooka</a>
+            {t('footer.designedBy')} <span style={{ color: "red" }}>&#10084;</span> {language === 'fr' ? 'par' : 'by'} <a href="https://wendooka.com" style={{ color: "white" }} target="_blank" rel="noopener noreferrer">wendooka</a>
           </p>
         </div>
       </Container>

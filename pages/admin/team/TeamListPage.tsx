@@ -15,7 +15,7 @@ const TeamListPage: React.FC<TeamListPageProps> = ({ authors, onNavigate, onLogo
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
-    const authorsList = Object.values(authors);
+    const authorsList: Author[] = Object.values(authors);
 
     const filteredAuthors = authorsList.filter(author => {
         const matchesSearch = author.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -163,8 +163,8 @@ const TeamListPage: React.FC<TeamListPageProps> = ({ authors, onNavigate, onLogo
                                         </td>
                                         <td className="p-4">
                                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${author.status === 'active'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-gray-100 text-gray-600'
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {author.status === 'active' ? 'Actif' : 'Inactif'}
                                             </span>

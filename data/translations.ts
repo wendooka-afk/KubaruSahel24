@@ -13,7 +13,12 @@ export const TRANSLATIONS = {
       publishedAt: "Publié le",
       by: "Par",
       justNow: "À l'instant",
-      ago: "Il y a"
+      ago: "Il y a",
+      viewAll: "Voir tout",
+      status: "Statut",
+      action: "Action",
+      cancel: "Annuler",
+      confirm: "Confirmer"
     },
     nav: {
       home: 'Actualités',
@@ -61,7 +66,9 @@ export const TRANSLATIONS = {
       interested: "Cet article vous a intéressé ?",
       authorArticles: "Voir ses articles",
       backToTeam: "Retour à l'équipe",
-      publishedArticles: "Articles publiés"
+      publishedArticles: "Articles publiés",
+      notFound: "Article non trouvé",
+      premium: "Premium"
     },
     comments: {
       title: "Commentaires",
@@ -70,7 +77,11 @@ export const TRANSLATIONS = {
       like: "J'aime",
       reply: "Répondre",
       report: "Signaler",
-      success: "Commentaire publié avec succès !"
+      success: "Commentaire publié avec succès !",
+      pending: "En attente",
+      approved: "Approuvé",
+      rejected: "Rejeté",
+      moderate: "Modérer"
     },
     contact: {
       title: "Contactez-nous",
@@ -168,7 +179,52 @@ export const TRANSLATIONS = {
       privacy: 'Politique de confidentialité',
       terms: "Conditions Générales d'Utilisation",
       rights: 'Tous droits réservés.',
-      madeIn: "Fait avec passion à Maroua, Garoua et N'Djamena."
+      madeIn: "Fait avec passion à Maroua, Garoua et N'Djamena.",
+      proArea: "Espace Pro",
+      designedBy: "Conçu avec"
+    },
+    admin: {
+      login: {
+        title: "Portail de Gestion Sécurisé",
+        backToSite: "Retour au site",
+        emailLabel: "Email Administratif",
+        passwordLabel: "Code d'accès",
+        emailPlaceholder: "votre.nom@kubaru.com",
+        submit: "ACCÉDER AU PANEL",
+        loading: "AUTHENTIFICATION...",
+        error: "Identifiants incorrects. Veuillez réessayer.",
+        demo: "Démo"
+      },
+      layout: {
+        dashboard: "Tableau de bord",
+        articles: "Articles",
+        videos: "Vidéos",
+        team: "Équipe",
+        comments: "Commentaires",
+        settings: "Paramètres",
+        logout: "Déconnexion",
+        role: "Rédacteur en chef",
+        notifications: "notifications"
+      },
+      dashboard: {
+        title: "Tableau de bord",
+        totalViews: "Vues Totales",
+        publishedArticles: "Articles Publiés",
+        onlineVideos: "Vidéos en ligne",
+        quickActions: "Actions Rapides",
+        manageContent: "Gérez votre contenu en un clic",
+        newArticle: "Nouvel Article",
+        addVideo: "Ajouter une Vidéo",
+        manageTeam: "Gérer l'Équipe",
+        systemStatus: "État du Système",
+        traffic: "Trafic de la semaine",
+        views: "Vues",
+        visitors: "Visiteurs",
+        categoryDist: "Articles par Catégorie",
+        authorPerf: "Performance des Auteurs",
+        recentPosts: "Dernières publications",
+        pendingComments: "commentaires en attente de modération"
+      }
     },
     categories: {
       'Politique': 'Politique',
@@ -194,7 +250,12 @@ export const TRANSLATIONS = {
       publishedAt: "Published on",
       by: "By",
       justNow: "Just now",
-      ago: "ago"
+      ago: "ago",
+      viewAll: "See all",
+      status: "Status",
+      action: "Action",
+      cancel: "Cancel",
+      confirm: "Confirm"
     },
     nav: {
       home: 'News',
@@ -242,7 +303,9 @@ export const TRANSLATIONS = {
       interested: "Did this article interest you?",
       authorArticles: "View articles",
       backToTeam: "Back to team",
-      publishedArticles: "Published articles"
+      publishedArticles: "Published articles",
+      notFound: "Article not found",
+      premium: "Premium"
     },
     comments: {
       title: "Comments",
@@ -251,7 +314,11 @@ export const TRANSLATIONS = {
       like: "Like",
       reply: "Reply",
       report: "Report",
-      success: "Comment successfully published!"
+      success: "Comment successfully published!",
+      pending: "Pending",
+      approved: "Approved",
+      rejected: "Rejected",
+      moderate: "Moderate"
     },
     contact: {
       title: "Contact Us",
@@ -349,7 +416,52 @@ export const TRANSLATIONS = {
       privacy: 'Privacy Policy',
       terms: "Terms of Service",
       rights: 'All rights reserved.',
-      madeIn: "Made with passion in Maroua, Garoua and N'Djamena."
+      madeIn: "Made with passion in Maroua, Garoua and N'Djamena.",
+      proArea: "Pro Area",
+      designedBy: "Designed with "
+    },
+    admin: {
+      login: {
+        title: "Secure Management Portal",
+        backToSite: "Back to site",
+        emailLabel: "Admin Email",
+        passwordLabel: "Access Code",
+        emailPlaceholder: "your.name@kubaru.com",
+        submit: "ACCESS PANEL",
+        loading: "AUTHENTICATING...",
+        error: "Incorrect credentials. Please try again.",
+        demo: "Demo"
+      },
+      layout: {
+        dashboard: "Dashboard",
+        articles: "Articles",
+        videos: "Videos",
+        team: "Team",
+        comments: "Comments",
+        settings: "Settings",
+        logout: "Log out",
+        role: "Editor in Chief",
+        notifications: "notifications"
+      },
+      dashboard: {
+        title: "Dashboard",
+        totalViews: "Total Views",
+        publishedArticles: "Published Articles",
+        onlineVideos: "Online Videos",
+        quickActions: "Quick Actions",
+        manageContent: "Manage your content in one click",
+        newArticle: "New Article",
+        addVideo: "Add Video",
+        manageTeam: "Manage Team",
+        systemStatus: "System Status",
+        traffic: "Weekly Traffic",
+        views: "Views",
+        visitors: "Visitors",
+        categoryDist: "Articles by Category",
+        authorPerf: "Author Performance",
+        recentPosts: "Recent Publications",
+        pendingComments: "comments pending moderation"
+      }
     },
     categories: {
       'Politique': 'Politics',

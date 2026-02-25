@@ -10,6 +10,7 @@ import { Article, Video } from '../types';
 import { PlayCircle, ChevronRight } from 'lucide-react';
 import Container from '../components/Container';
 import { useLanguage } from '../contexts/LanguageContext';
+import { slugify } from '../utils/slugify';
 
 interface HomePageProps {
   articles: Article[];
@@ -24,9 +25,21 @@ const HomePage: React.FC<HomePageProps> = ({ articles = [], videos = [] }) => {
     if (!articles || articles.length === 0) {
       return { featuredArticle: null, secondaryArticles: [], latestArticles: [] };
     }
-    const featured = articles.find(a => a.isBreaking) || articles[0];
-    const secondary = articles.filter(a => a.id !== featured?.id).slice(0, 3);
-    const latest = articles.filter(a => a.id !== featured?.id && !secondary.find(s => s.id === a.id)).slice(0, 3);
+
+    // Sort by date descending (ensure most recent is first)
+    const sortedArticles = [...articles].sort((a, b) =>
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+
+    // Most recent is ALWAYS the featured/hero article
+    const featured = sortedArticles[0];
+
+    // Next 3 are secondary (Editor's Pick)
+    const secondary = sortedArticles.slice(1, 4);
+
+    // Next 3 are latest news list
+    const latest = sortedArticles.slice(4, 7);
+
     return { featuredArticle: featured, secondaryArticles: secondary, latestArticles: latest };
   }, [articles]);
 
@@ -49,7 +62,7 @@ const HomePage: React.FC<HomePageProps> = ({ articles = [], videos = [] }) => {
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 border-b border-gray-100 pb-12">
           <div className="lg:col-span-8 group">
             {featuredArticle && (
-              <Link to={`/article/${featuredArticle.seo?.slug || featuredArticle.id}`} className="relative h-[450px] md:h-[550px] rounded-xl overflow-hidden shadow-sm block bg-gray-100">
+              <Link to={`/${slugify(featuredArticle.category)}/${featuredArticle.seo?.slug || slugify(featuredArticle.title)}`} className="relative h-[450px] md:h-[550px] rounded-xl overflow-hidden shadow-sm block bg-gray-100">
                 <img src={featuredArticle.imageUrl} alt={featuredArticle.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute top-4 left-4 z-20">
                   <span className="bg-secondary text-primary text-xs font-bold px-3 py-1.5 rounded uppercase shadow-lg">

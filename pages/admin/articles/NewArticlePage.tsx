@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
+import ImageUploader from '../../../components/ImageUploader';
+import InlineImageModal from '../../../components/InlineImageModal';
 import { Article, Category, Author } from '../../../types';
 import { AUTHORS_FR, AUTHORS_EN } from '../../../data/mockData';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { 
-  Save, Image as ImageIcon, Video, Link as LinkIcon, 
-  Bold, Italic, List, Type, Quote, 
-  CheckCircle, AlertTriangle, Search, Globe, RefreshCw, Eye, Clock, 
+import { optimizeImage } from '../../../utils/image';
+import {
+  Save, Image as ImageIcon, Video, Link as LinkIcon,
+  Bold, Italic, List, Type, Quote,
+  CheckCircle, AlertTriangle, Search, Globe, RefreshCw, Eye, Clock,
   ChevronDown, X, Upload, Link2, Monitor
 } from 'lucide-react';
 
@@ -14,34 +17,55 @@ interface NewArticlePageProps {
   onNavigate: (view: string) => void;
   onLogout: () => void;
   onSubmit: (article: Article) => void;
+  initialData?: Article;
 }
 
-const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, onSubmit }) => {
+const dataURItoBlob = (dataURI: string) => {
+  try {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  } catch (e) {
+    console.error("Error converting data URI to blob", e);
+    return null;
+  }
+};
+
+const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, onSubmit, initialData }) => {
   const { language } = useLanguage();
   const authors = language === 'en' ? AUTHORS_EN : AUTHORS_FR;
-  
+
   // Main Content State
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [content, setContent] = useState(initialData?.content || "");
+  const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
+
   // Metadata State
-  const [category, setCategory] = useState<Category>('Politique');
-  const [authorId, setAuthorId] = useState('1');
-  const [imageUrl, setImageUrl] = useState("");
-  const [isBreaking, setIsBreaking] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-  const [status, setStatus] = useState<'draft' | 'published'>('draft');
+  const [category, setCategory] = useState<Category>(initialData?.category || 'Politique');
+  const [authorId, setAuthorId] = useState(initialData?.author.id || '1');
+  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || "");
+  const [isBreaking, setIsBreaking] = useState(initialData?.isBreaking || false);
+  const [isPremium, setIsPremium] = useState(initialData?.isPremium || false);
+  const [status, setStatus] = useState<'draft' | 'published'>('published');
 
   // UI State
-  const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
+  const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>(initialData?.imageUrl?.startsWith('http') ? 'url' : 'upload');
   const [showPreview, setShowPreview] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [tempImages, setTempImages] = useState<Record<string, string>>({}); // BlobURL -> Base64
+  const [blobUrls, setBlobUrls] = useState<string[]>([]); // Track for cleanup
 
   // SEO State
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
-  const [slug, setSlug] = useState("");
-  const [keywords, setKeywords] = useState("");
+  const [seoTitle, setSeoTitle] = useState(initialData?.seo?.metaTitle || "");
+  const [seoDescription, setSeoDescription] = useState(initialData?.seo?.metaDescription || "");
+  const [slug, setSlug] = useState(initialData?.seo?.slug || "");
+  const [keywords, setKeywords] = useState(initialData?.seo?.keywords?.join(', ') || "");
 
   // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +94,79 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
     if (!seoDescription && excerpt) setSeoDescription(excerpt.substring(0, 160));
   }, [excerpt]);
 
+  // ELITE FIX: Convert all Base64 to Blob URLs on initialization
+  useEffect(() => {
+    const sanitizeInitialData = () => {
+      const newTempImages: Record<string, string> = {};
+      const newBlobUrls: string[] = [];
+
+      const convertBase64ToBlob = (base64: string) => {
+        if (!base64 || !base64.startsWith('data:')) return base64;
+        const blob = dataURItoBlob(base64);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          newTempImages[url] = base64;
+          newBlobUrls.push(url);
+          return url;
+        }
+        return base64;
+      };
+
+      // 1. Process Featured Image
+      if (initialData?.imageUrl && initialData.imageUrl.startsWith('data:')) {
+        const url = convertBase64ToBlob(initialData.imageUrl);
+        setImageUrl(url);
+      }
+
+      // 2. Process Content
+      if (initialData?.content) {
+        let cleanContent = initialData.content;
+        const base64Regex = /src="(data:image\/[^;]+;base64,[^"]+)"/g;
+        let match;
+        while ((match = base64Regex.exec(initialData.content)) !== null) {
+          const base64 = match[1];
+          const url = convertBase64ToBlob(base64);
+          cleanContent = cleanContent.replaceAll(base64, url);
+        }
+        setContent(cleanContent);
+        // Also strip <p> and <br> tags for the editor textarea if they were added by formatContentToHtml previously
+        // Actually, the user might want to keep them if they were intentional. 
+        // But NewArticlePage usually expects plain text with optional HTML tags.
+      }
+
+      setTempImages(newTempImages);
+      setBlobUrls(newBlobUrls);
+    };
+
+    sanitizeInitialData();
+
+    // Cleanup Blob URLs on unmount to prevent memory leaks
+    return () => {
+      blobUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []); // Only on mount
+
+  /**
+   * Automatically wraps plain text paragraphs in <p> tags 
+   * while preserving existing HTML tags.
+   */
+  const formatContentToHtml = (rawContent: string) => {
+    if (!rawContent) return "";
+
+    // If it looks like it's already HTML (starts with a tag), return as is
+    if (rawContent.trim().startsWith('<')) {
+      return rawContent;
+    }
+
+    // Split by double newlines to find paragraphs
+    return rawContent
+      .split(/\n\s*\n/)
+      .map(para => para.trim())
+      .filter(para => para.length > 0)
+      .map(para => `<p class="mb-6">${para.replace(/\n/g, '<br />')}</p>`)
+      .join('\n');
+  };
+
   const insertTag = (openTag: string, closeTag: string = "") => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -81,19 +178,36 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
     const after = content.substring(end);
 
     const newContent = `${before}${openTag}${selectedText}${closeTag}${after}`;
+
+    // PERFORMANCE optimization: If content is massive (e.g. includes many Base64 images),
+    // frequent state updates can freeze the UI.
     setContent(newContent);
-    
+
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(start + openTag.length, end + openTag.length);
+      // Adjust selection range based on tag length
+      const newCursorPos = start + openTag.length + selectedText.length + closeTag.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
 
   const handleFeaturedImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
+      setIsOptimizing(true);
       const reader = new FileReader();
-      reader.onload = () => setImageUrl(reader.result as string);
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        try {
+          const optimized = await optimizeImage(base64);
+          setImageUrl(optimized); // Save actual base64 string
+        } catch (err) {
+          console.error("Optimization failed:", err);
+          setImageUrl(base64);
+        } finally {
+          setIsOptimizing(false);
+        }
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -101,13 +215,66 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
   const handleEditorImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
+      setIsOptimizing(true);
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         const base64 = reader.result as string;
-        insertTag(`<figure class="my-6"><img src="${base64}" class="w-full rounded-xl shadow-lg" /><figcaption class="text-center text-sm text-gray-500 mt-2 italic">Légende</figcaption></figure>`);
+        try {
+          const optimized = await optimizeImage(base64);
+
+          // Convert to Blob URL for performance
+          const blob = dataURItoBlob(optimized);
+          if (blob) {
+            const blobUrl = URL.createObjectURL(blob);
+            setTempImages(prev => ({ ...prev, [blobUrl]: optimized }));
+            insertTag(`<figure class="my-6 text-center"><img src="${blobUrl}" class="w-full rounded-xl shadow-lg" /><figcaption class="text-center text-sm text-gray-400 mt-2 italic font-sans">Source : Kubaru Sahel 24</figcaption></figure>`);
+          } else {
+            // Fallback if blob conversion fails
+            insertTag(`<figure class="my-6 text-center"><img src="${optimized}" class="w-full rounded-xl shadow-lg" /><figcaption class="text-center text-sm text-gray-400 mt-2 italic font-sans">Source : Kubaru Sahel 24</figcaption></figure>`);
+          }
+
+        } catch (err) {
+          console.error("Optimization failed:", err);
+          insertTag(`<figure class="my-6 text-center"><img src="${base64}" class="w-full rounded-xl shadow-lg" /><figcaption class="text-center text-sm text-gray-400 mt-2 italic font-sans">Source : Kubaru Sahel 24</figcaption></figure>`);
+        } finally {
+          setIsOptimizing(false);
+        }
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleInsertInlineImage = (html: string) => {
+    // Create a temporary DOM element to parse HTML and find images
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    const images = div.querySelectorAll('img');
+
+    if (images.length === 0) {
+      insertTag(html);
+      return;
+    }
+
+    const newTempImages = { ...tempImages };
+    let hasChanges = false;
+
+    images.forEach(img => {
+      if (img.src.startsWith('data:')) {
+        const blob = dataURItoBlob(img.src);
+        if (blob) {
+          const blobUrl = URL.createObjectURL(blob);
+          newTempImages[blobUrl] = img.src; // Keep original base64 for save
+          img.src = blobUrl; // Use lightweight blob URL for editor
+          hasChanges = true;
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setTempImages(newTempImages);
+    }
+
+    insertTag(div.innerHTML);
   };
 
   const calculateReadTime = () => {
@@ -125,17 +292,26 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
 
     const selectedAuthor = Object.values(authors).find(a => a.id === authorId) || Object.values(authors)[0];
 
+    // Restore Base64 images from Blob URLs before saving
+    let finalContent = content;
+    let finalImageUrl = imageUrl;
+
+    Object.entries(tempImages).forEach(([blobUrl, base64]) => {
+      finalContent = finalContent.replaceAll(blobUrl, base64);
+      if (finalImageUrl === blobUrl) finalImageUrl = base64;
+    });
+
     const article: Article = {
-      id: Date.now().toString(),
+      id: initialData?.id || Date.now().toString(),
       title,
-      content,
+      content: formatContentToHtml(finalContent),
       excerpt,
       category,
-      imageUrl,
+      imageUrl: finalImageUrl,
       author: selectedAuthor,
-      publishedAt: new Date().toISOString(),
+      publishedAt: initialData?.publishedAt || new Date().toISOString(),
       readTime: calculateReadTime(),
-      views: 0,
+      views: initialData?.views || 0,
       isBreaking,
       isPremium,
       seo: {
@@ -150,9 +326,14 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
   };
 
   return (
-    <AdminLayout title="Rédiger un article" currentView="ADMIN_ARTICLES" onNavigate={onNavigate} onLogout={onLogout}>
+    <AdminLayout
+      title={initialData ? "Modifier l'article" : "Rédiger un article"}
+      currentView="ADMIN_ARTICLES"
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8 pb-20">
-        
+
         <div className="flex-1 space-y-8">
           <FormSection title="Contenu de l'article">
             <FormField label="Titre" required id="title">
@@ -169,6 +350,12 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
 
             <div className="space-y-3">
               <label className="block text-sm font-bold text-gray-700">Corps de l'article <span className="text-red-500">*</span></label>
+              {isOptimizing && (
+                <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 mb-2 flex items-center justify-center gap-3 animate-pulse">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs font-bold text-primary uppercase tracking-widest text-[10px]">Traitement de l'image...</span>
+                </div>
+              )}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
                 <div className="flex items-center gap-1 p-3 border-b border-gray-100 bg-gray-50/50 flex-wrap">
                   <ToolbarButton icon={<Bold size={18} />} onClick={() => insertTag('<b>', '</b>')} label="Gras" />
@@ -179,13 +366,13 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
                   <div className="w-px h-6 bg-gray-200 mx-2"></div>
                   <ToolbarButton icon={<LinkIcon size={18} />} onClick={() => {
                     const url = prompt('URL du lien :');
-                    if(url) insertTag(`<a href="${url}" class="text-accent underline">`, '</a>');
+                    if (url) insertTag(`<a href="${url}" class="text-accent underline">`, '</a>');
                   }} label="Lien" />
                   <input type="file" ref={editorImageInputRef} className="hidden" accept="image/*" onChange={handleEditorImageUpload} />
-                  <ToolbarButton icon={<ImageIcon size={18} />} onClick={() => editorImageInputRef.current?.click()} label="Image" />
+                  <ToolbarButton icon={<ImageIcon size={18} />} onClick={() => setShowImageModal(true)} label="Image" />
                   <ToolbarButton icon={<Video size={18} />} onClick={() => {
                     const id = prompt('ID Vidéo YouTube :');
-                    if(id) insertTag(`<div class="aspect-video my-6"><iframe src="https://www.youtube.com/embed/${id}" class="w-full h-full rounded-xl shadow-lg" frameborder="0" allowfullscreen></iframe></div>`);
+                    if (id) insertTag(`<div class="aspect-video my-6"><iframe src="https://www.youtube.com/embed/${id}" class="w-full h-full rounded-xl shadow-lg" frameborder="0" allowfullscreen></iframe></div>`);
                   }} label="Vidéo" />
                 </div>
                 <textarea
@@ -225,7 +412,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField label="Titre Méta" id="seo-title">
-                <input 
+                <input
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none"
                   value={seoTitle}
                   onChange={e => setSeoTitle(e.target.value)}
@@ -233,7 +420,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
                 />
               </FormField>
               <FormField label="URL Personnalisée (Slug)" id="seo-slug">
-                <input 
+                <input
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none"
                   value={slug}
                   onChange={e => setSlug(slugify(e.target.value))}
@@ -242,7 +429,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
               </FormField>
               <div className="md:col-span-2">
                 <FormField label="Méta Description" id="seo-desc">
-                  <textarea 
+                  <textarea
                     className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none resize-none h-20"
                     value={seoDescription}
                     onChange={e => setSeoDescription(e.target.value)}
@@ -263,7 +450,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
             <div className="p-6 space-y-5">
               <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-widest">
                 <span>Statut</span>
-                <select 
+                <select
                   className="bg-gray-100 px-3 py-1 rounded text-primary border-none outline-none"
                   value={status}
                   onChange={e => setStatus(e.target.value as any)}
@@ -272,16 +459,16 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
                   <option value="published">Publier</option>
                 </select>
               </div>
-              
+
               <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPreview(true)}
                   className="w-full py-3 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 border border-gray-100"
                 >
                   <Eye size={18} /> Aperçu
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="w-full py-3 bg-secondary text-primary font-bold rounded-xl hover:bg-yellow-400 transition-all shadow-lg shadow-secondary/20"
                 >
@@ -293,7 +480,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
 
           <FormSection title="Catégorisation">
             <FormField label="Rubrique" id="cat">
-              <select 
+              <select
                 className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white font-bold"
                 value={category}
                 onChange={e => setCategory(e.target.value as Category)}
@@ -305,7 +492,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
             </FormField>
 
             <FormField label="Journaliste" id="auth">
-              <select 
+              <select
                 className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white font-bold"
                 value={authorId}
                 onChange={e => setAuthorId(e.target.value)}
@@ -318,46 +505,29 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
           </FormSection>
 
           <FormSection title="Image principale">
-             <div className="mb-4">
-               {imageUrl ? (
-                 <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 group">
-                    <img src={imageUrl} className="w-full h-full object-cover" />
-                    <button 
-                      type="button"
-                      onClick={() => setImageUrl("")}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} />
-                    </button>
-                 </div>
-               ) : (
-                 <div 
-                   onClick={() => featuredImageInputRef.current?.click()}
-                   className="aspect-video rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-white transition-all group"
-                 >
-                   <Upload size={30} className="text-gray-300 group-hover:text-primary transition-colors" />
-                   <span className="text-[10px] font-bold text-gray-400 mt-2 uppercase">Choisir une image</span>
-                   <input type="file" ref={featuredImageInputRef} className="hidden" accept="image/*" onChange={handleFeaturedImageUpload} />
-                 </div>
-               )}
-             </div>
-             
-             <div className="pt-4 border-t border-gray-50 space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
-                   <div className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${isBreaking ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300 bg-white'}`}>
-                     {isBreaking && <CheckCircle size={14} />}
-                   </div>
-                   <input type="checkbox" className="hidden" checked={isBreaking} onChange={() => setIsBreaking(!isBreaking)} />
-                   <span className="text-xs font-bold text-gray-700 uppercase">Flash Info / Direct</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                   <div className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${isPremium ? 'bg-primary border-primary text-white' : 'border-gray-300 bg-white'}`}>
-                     {isPremium && <CheckCircle size={14} />}
-                   </div>
-                   <input type="checkbox" className="hidden" checked={isPremium} onChange={() => setIsPremium(!isPremium)} />
-                   <span className="text-xs font-bold text-gray-700 uppercase">Article Premium</span>
-                </label>
-             </div>
+            <ImageUploader
+              value={imageUrl}
+              onChange={setImageUrl}
+              aspectRatio="video"
+              showGallery={true}
+            />
+
+            <div className="pt-4 border-t border-gray-50 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${isBreaking ? 'bg-red-500 border-red-500 text-white' : 'border-gray-300 bg-white'}`}>
+                  {isBreaking && <CheckCircle size={14} />}
+                </div>
+                <input type="checkbox" className="hidden" checked={isBreaking} onChange={() => setIsBreaking(!isBreaking)} />
+                <span className="text-xs font-bold text-gray-700 uppercase">Flash Info / Direct</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className={`w-5 h-5 rounded border transition-colors flex items-center justify-center ${isPremium ? 'bg-primary border-primary text-white' : 'border-gray-300 bg-white'}`}>
+                  {isPremium && <CheckCircle size={14} />}
+                </div>
+                <input type="checkbox" className="hidden" checked={isPremium} onChange={() => setIsPremium(!isPremium)} />
+                <span className="text-xs font-bold text-gray-700 uppercase">Article Premium</span>
+              </label>
+            </div>
           </FormSection>
         </div>
       </form>
@@ -366,25 +536,33 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
       {showPreview && (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white w-full h-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-fade-in">
-             <div className="p-4 bg-primary text-white flex justify-between items-center flex-shrink-0">
-               <span className="font-serif font-bold text-lg px-4">Prévisualisation</span>
-               <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
-             </div>
-             <div className="flex-1 overflow-y-auto p-6 md:p-12">
-               <div className="max-w-3xl mx-auto">
-                 <div className="flex gap-2 mb-6">
-                   <span className="bg-primary/5 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{category}</span>
-                   {isPremium && <span className="bg-secondary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Premium</span>}
-                 </div>
-                 <h1 className="font-serif text-3xl md:text-5xl font-black text-primary mb-6 leading-tight">{title || "Titre de l'article"}</h1>
-                 <p className="text-xl md:text-2xl text-gray-500 font-serif italic mb-8 border-l-4 border-secondary pl-6 leading-relaxed">{excerpt}</p>
-                 <img src={imageUrl} className="w-full rounded-2xl mb-10 shadow-xl" />
-                 <div className="prose prose-lg prose-slate max-w-none font-serif text-gray-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} />
-               </div>
-             </div>
+            <div className="p-4 bg-primary text-white flex justify-between items-center flex-shrink-0">
+              <span className="font-serif font-bold text-lg px-4">Prévisualisation</span>
+              <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 md:p-12">
+              <div className="max-w-3xl mx-auto">
+                <div className="flex gap-2 mb-6">
+                  <span className="bg-primary/5 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{category}</span>
+                  {isPremium && <span className="bg-secondary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">Premium</span>}
+                </div>
+                <h1 className="font-serif text-3xl md:text-5xl font-black text-primary mb-6 leading-tight">{title || "Titre de l'article"}</h1>
+                <p className="text-xl md:text-2xl text-gray-500 font-serif italic mb-8 border-l-4 border-secondary pl-6 leading-relaxed">{excerpt}</p>
+                <img src={imageUrl} className="w-full rounded-2xl mb-10 shadow-xl" />
+                <div className="prose prose-lg prose-slate max-w-none font-serif text-gray-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatContentToHtml(content) }} />
+                {/* Note: In preview, blob URLs will work as long as they are valid. No need to replace them here for preview. */}
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Inline Image Modal */}
+      <InlineImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        onInsert={handleInsertInlineImage}
+      />
     </AdminLayout>
   );
 };
@@ -394,8 +572,8 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
 const FormSection: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
   <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
     <div className="bg-gray-50/50 px-8 py-4 border-b border-gray-100 flex items-center gap-3">
-       {icon && <div className="text-primary">{icon}</div>}
-       <h3 className="font-black text-primary text-[10px] uppercase tracking-[0.2em]">{title}</h3>
+      {icon && <div className="text-primary">{icon}</div>}
+      <h3 className="font-black text-primary text-[10px] uppercase tracking-[0.2em]">{title}</h3>
     </div>
     <div className="p-8 space-y-8">
       {children}

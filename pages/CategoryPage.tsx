@@ -7,6 +7,7 @@ import Sidebar from '../components/Sidebar';
 import Container from '../components/Container';
 import AdBanner from '../components/AdBanner';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getCategoryFromSlug } from '../utils/slugify';
 
 interface CategoryPageProps {
   articles: Article[];
@@ -16,12 +17,13 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ articles = [] }) => {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
 
-  const categoryId = useMemo(() => id ? decodeURIComponent(id) : '', [id]);
+  const categorySlug = useMemo(() => id ? decodeURIComponent(id) : '', [id]);
+  const categoryId = useMemo(() => getCategoryFromSlug(categorySlug) || categorySlug, [categorySlug]);
 
   const categoryArticles = useMemo(() => {
     if (!articles) return [];
     return articles.filter(a =>
-      a.category.trim().toLowerCase() === categoryId.trim().toLowerCase()
+      a.category === categoryId
     );
   }, [articles, categoryId]);
 
@@ -34,7 +36,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ articles = [] }) => {
               {t(`categories.${categoryId}`) !== `categories.${categoryId}` ? t(`categories.${categoryId}`) : categoryId}
             </h1>
             <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.2em]">
-              {categoryArticles.length} {categoryArticles.length > 1 ? 'articles publiés' : 'article publié'}
+              {categoryArticles.length} {categoryArticles.length > 1 ? t('article.publishedArticles') : 'article publié'}
             </p>
             <AdBanner format="horizontal" className="mt-12" />
           </div>

@@ -3,9 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Search, User, Bell, Globe, ChevronDown } from 'lucide-react';
 import Container from './Container';
 import { useLanguage } from '../contexts/LanguageContext';
+import { slugify } from '../utils/slugify';
+
+import { Article } from '../types';
 
 interface HeaderProps {
-  breakingNews: { id: string; title: string }[];
+  breakingNews: Article[];
 }
 
 const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
@@ -23,11 +26,11 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
 
   const menuItems = [
     { label: t('nav.home'), path: '/', isActive: location.pathname === '/' },
-    { label: t('nav.politics'), path: '/category/Politique', isActive: location.pathname === '/category/Politique' },
-    { label: t('nav.economy'), path: '/category/Économie', isActive: location.pathname === '/category/Économie' },
-    { label: t('nav.society'), path: '/category/Société', isActive: location.pathname === '/category/Société' },
-    { label: t('nav.culture'), path: '/category/Culture', isActive: location.pathname === '/category/Culture' },
-    { label: t('nav.regions'), path: '/category/Régions', isActive: location.pathname === '/category/Régions' },
+    { label: t('nav.politics'), path: `/category/${slugify('Politique')}`, isActive: location.pathname.includes(slugify('Politique')) },
+    { label: t('nav.economy'), path: `/category/${slugify('Économie')}`, isActive: location.pathname.includes(slugify('Économie')) },
+    { label: t('nav.society'), path: `/category/${slugify('Société')}`, isActive: location.pathname.includes(slugify('Société')) },
+    { label: t('nav.culture'), path: `/category/${slugify('Culture')}`, isActive: location.pathname.includes(slugify('Culture')) },
+    { label: t('nav.regions'), path: `/category/${slugify('Régions')}`, isActive: location.pathname.includes(slugify('Régions')) },
     { label: t('nav.webtv'), path: '/webtv', isActive: location.pathname === '/webtv' },
     { label: t('nav.contact'), path: '/contact', isActive: location.pathname === '/contact' },
   ];
@@ -170,7 +173,7 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
             const duplicatedNews = [...limitedNews, ...limitedNews];
             return duplicatedNews.map((item, idx) => (
               <React.Fragment key={`${item.id}-${idx}`}>
-                <Link to={`/article/${item.id}`} className="hover:text-secondary transition-colors inline-block">
+                <Link to={`/${slugify(item.category)}/${item.seo?.slug || slugify(item.title)}`} className="hover:text-secondary transition-colors inline-block">
                   {item.title}
                 </Link>
                 <span className="text-secondary opacity-50 font-black text-lg">/</span>

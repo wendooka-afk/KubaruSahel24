@@ -11,28 +11,53 @@ import ArticleCard from '../components/ArticleCard';
 import OptimizedImage from '../components/OptimizedImage';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCategoryColor } from '../constants';
+import { slugify } from '../utils/slugify';
+import { ARTICLES_FR, ARTICLES_EN } from '../data/mockData';
 
 interface ArticlePageProps {
   articles: Article[];
 }
 
 const ArticlePage: React.FC<ArticlePageProps> = ({ articles = [] }) => {
-  const { id } = useParams<{ id: string }>();
+  const { category: categorySlug, slug, id } = useParams<{ category: string; slug: string; id: string }>();
+  // We keep 'id' in case old routes still exist or for fallback
+  const articleIdOrSlug = slug || id;
+
   const navigate = useNavigate();
   const { t, language } = useLanguage();
 
   if (!articles || articles.length === 0) return null;
 
   // Find article by ID or Slug
-  const article = articles.find(a => a.id === id || a.seo?.slug === id);
+  // Strategy 1: Check in current language articles (slug, id, or slugified title)
+  let article = articles.find(a =>
+    (a.seo?.slug === articleIdOrSlug) ||
+    (a.id === articleIdOrSlug) ||
+    (slugify(a.title) === articleIdOrSlug)
+  );
+
+  // Strategy 2: If not found, check ALL known articles (FR + EN) to find matching ID,
+  // then retrieve the localized version from current 'articles' list.
+  if (!article) {
+    const allArticles = [...ARTICLES_FR, ...ARTICLES_EN];
+    const foundAnywhere = allArticles.find(a =>
+      (a.seo?.slug === articleIdOrSlug) ||
+      (a.id === articleIdOrSlug) ||
+      (slugify(a.title) === articleIdOrSlug)
+    );
+
+    if (foundAnywhere) {
+      article = articles.find(a => a.id === foundAnywhere.id);
+    }
+  }
 
   if (!article) {
     return (
       <Container size="page">
         <div className="py-20 text-center">
-          <h2 className="text-2xl font-serif font-bold text-primary mb-4">Article non trouvé</h2>
+          <h2 className="text-2xl font-serif font-bold text-primary mb-4">{t('article.notFound')}</h2>
           <button onClick={() => navigate('/')} className="text-accent font-bold underline">
-            Retour à l'accueil
+            {t('common.backHome')}
           </button>
         </div>
       </Container>
@@ -65,7 +90,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ articles = [] }) => {
                 </Link>
                 {article.isPremium && (
                   <span className="bg-secondary/20 text-primary px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest">
-                    Premium
+                    {t('article.premium')}
                   </span>
                 )}
               </div>
@@ -84,7 +109,7 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ articles = [] }) => {
                   </div>
                 </Link>
                 <div className="flex items-center gap-6 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  <span className="flex items-center gap-2"><Calendar size={14} className="text-secondary" /> {new Date(article.publishedAt).toLocaleDateString()}</span>
+                  <span className="flex items-center gap-2"><Calendar size={14} className="text-secondary" /> {new Date(article.publishedAt).toLocaleDateString(t('header.date'), { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   <span className="flex items-center gap-2"><Clock size={14} className="text-secondary" /> {article.readTime} {t('common.minutes')}</span>
                 </div>
               </div>
