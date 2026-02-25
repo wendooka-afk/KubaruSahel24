@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Calendar, Share2, MessageSquare, Bookmark } from 'lucide-react';
 import { Article } from '../types';
@@ -13,6 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { getCategoryColor } from '../constants';
 import { slugify } from '../utils/slugify';
 import { ARTICLES_FR, ARTICLES_EN } from '../data/mockData';
+import { incrementViews } from '../lib/api';
 
 interface ArticlePageProps {
   articles: Article[];
@@ -63,6 +64,13 @@ const ArticlePage: React.FC<ArticlePageProps> = ({ articles = [] }) => {
       </Container>
     );
   }
+
+  // Increment view count in Supabase when article is viewed
+  useEffect(() => {
+    if (article?.id) {
+      incrementViews(article.id);
+    }
+  }, [article?.id]);
 
   const similarArticles = articles
     .filter(a => a.category === article.category && a.id !== article.id)

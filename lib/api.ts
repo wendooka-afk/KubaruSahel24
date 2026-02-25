@@ -114,6 +114,34 @@ export const deleteArticle = async (id: string): Promise<boolean> => {
     return true;
 };
 
+export const incrementViews = async (id: string): Promise<number | null> => {
+    // First get current views
+    const { data: article, error: fetchError } = await supabase
+        .from('articles')
+        .select('views')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !article) {
+        console.error('Error fetching views:', fetchError);
+        return null;
+    }
+
+    const newViews = (article.views || 0) + 1;
+
+    const { error: updateError } = await supabase
+        .from('articles')
+        .update({ views: newViews })
+        .eq('id', id);
+
+    if (updateError) {
+        console.error('Error incrementing views:', updateError);
+        return null;
+    }
+
+    return newViews;
+};
+
 export const uploadImage = async (file: File | Blob, fileName: string): Promise<string | null> => {
     const fileExt = fileName.split('.').pop() || 'jpg';
     const name = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
