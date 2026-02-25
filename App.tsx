@@ -41,6 +41,7 @@ import {
   COMMENTS_FR, COMMENTS_EN
 } from './data/mockData';
 import { Article, Video, Author, Comment } from './types';
+import { fetchArticles, fetchAuthors } from './lib/api';
 
 // Wrapper pour les routes admin
 const AdminRoute: React.FC<{ children: React.ReactNode; isAdminLoggedIn: boolean }> = ({ children, isAdminLoggedIn }) => {
@@ -74,55 +75,63 @@ const AppContent: React.FC = () => {
     }
   });
 
-  // Initialisation asynchrone d'IndexedDB
+  // Fetch data from Supabase on load
   useEffect(() => {
-    const initStorage = async () => {
+    const initData = async () => {
       try {
-        // 1. Tenter la migration depuis localStorage si c'est le premier lancement avec IndexedDB
-        await migrateFromLocalStorage();
+        // Fetch from Supabase
+        const fetchedArticles = await fetchArticles();
+        const fetchedAuthorsList = await fetchAuthors();
 
-        // 2. Charger les données depuis IndexedDB en fonction de la langue
+        // Convert authors array to Record<string, Author>
+        const fetchedAuthors: Record<string, Author> = {};
+        fetchedAuthorsList.forEach(author => {
+          fetchedAuthors[author.id] = author;
+        });
+
+        // 1. Appliquer les données
+        // Si Supabase est vide, on charge les mocks par défaut pour l'instant
+        if (fetchedArticles.length > 0) {
+          setArticles(fetchedArticles);
+        } else {
+          setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
+        }
+
+        if (Object.keys(fetchedAuthors).length > 0) {
+          setAuthors(fetchedAuthors);
+        } else {
+          setAuthors(language === 'en' ? AUTHORS_EN : AUTHORS_FR);
+        }
+
+        // For Videos and Comments, we still use local storage or mocks for now 
+        // until they are migrated to Supabase.
         const dataKey = `data_${STORAGE_VERSION}_${language}`;
-        const savedArticles = await loadData('articles', dataKey);
         const savedVideos = await loadData('videos', dataKey);
-        const savedAuthors = await loadData('authors', dataKey);
         const savedComments = await loadData('comments', dataKey);
-
-        // 3. Appliquer les données ou charger les mocks par défaut
-        setArticles(savedArticles || (language === 'en' ? ARTICLES_EN : ARTICLES_FR));
         setVideos(savedVideos || (language === 'en' ? VIDEOS_EN : VIDEOS_FR));
-        setAuthors(savedAuthors || (language === 'en' ? AUTHORS_EN : AUTHORS_FR));
         setComments(savedComments || (language === 'en' ? COMMENTS_EN : COMMENTS_FR));
+
       } catch (e) {
-        console.error("Critical storage error:", e);
-        // Fallback ultime sur les mocks en cas de problème IndexedDB
+        console.error("Critical data fetching error:", e);
+        // Fallback ultime sur les mocks
         setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
+        setAuthors(language === 'en' ? AUTHORS_EN : AUTHORS_FR);
       } finally {
         setIsStorageReady(true);
       }
     };
 
-    initStorage();
+    initData();
   }, [language]);
 
-  // Sauvegarde persistante vers IndexedDB avec un léger délai pour grouper les changements
-  useEffect(() => {
-    if (!isStorageReady) return;
-    const timeout = setTimeout(() => saveData('articles', articles, `data_${STORAGE_VERSION}_${language}`), 1000);
-    return () => clearTimeout(timeout);
-  }, [articles, isStorageReady, language]);
+  // We no longer autosave Articles and Authors to IndexedDB 
+  // because they are now managed by Supabase.
 
   useEffect(() => {
     if (!isStorageReady) return;
     const timeout = setTimeout(() => saveData('videos', videos, `data_${STORAGE_VERSION}_${language}`), 1000);
     return () => clearTimeout(timeout);
   }, [videos, isStorageReady, language]);
-
-  useEffect(() => {
-    if (!isStorageReady) return;
-    const timeout = setTimeout(() => saveData('authors', authors, `data_${STORAGE_VERSION}_${language}`), 1000);
-    return () => clearTimeout(timeout);
-  }, [authors, isStorageReady, language]);
 
   useEffect(() => {
     if (!isStorageReady) return;

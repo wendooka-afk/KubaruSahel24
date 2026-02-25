@@ -6,6 +6,7 @@ import { Article, Category, Author } from '../../../types';
 import { AUTHORS_FR, AUTHORS_EN } from '../../../data/mockData';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { optimizeImage } from '../../../utils/image';
+import { saveArticle, uploadImage } from '../../../lib/api';
 import {
   Save, Image as ImageIcon, Video, Link as LinkIcon,
   Bold, Italic, List, Type, Quote,
@@ -283,46 +284,91 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
     return Math.ceil(wordCount / wordsPerMinute) || 1;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !content || !imageUrl) {
       alert("Veuillez remplir les champs obligatoires.");
       return;
     }
 
-    const selectedAuthor = Object.values(authors).find(a => a.id === authorId) || Object.values(authors)[0];
+    setIsOptimizing(true); // Re-using this state for submit loading
 
-    // Restore Base64 images from Blob URLs before saving
-    let finalContent = content;
-    let finalImageUrl = imageUrl;
+    try {
+      const selectedAuthor = Object.values(authors).find(a => a.id === authorId) || Object.values(authors)[0];
 
-    Object.entries(tempImages).forEach(([blobUrl, base64]) => {
-      finalContent = finalContent.replaceAll(blobUrl, base64);
-      if (finalImageUrl === blobUrl) finalImageUrl = base64;
-    });
+      // Restore Base64 images from Blob URLs before saving
+      let finalContent = content;
+      let finalImageUrl = imageUrl;
 
-    const article: Article = {
-      id: initialData?.id || Date.now().toString(),
-      title,
-      content: formatContentToHtml(finalContent),
-      excerpt,
-      category,
-      imageUrl: finalImageUrl,
-      author: selectedAuthor,
-      publishedAt: initialData?.publishedAt || new Date().toISOString(),
-      readTime: calculateReadTime(),
-      views: initialData?.views || 0,
-      isBreaking,
-      isPremium,
-      seo: {
-        metaTitle: seoTitle,
-        metaDescription: seoDescription,
-        slug,
-        keywords: keywords.split(',').map(k => k.trim())
+      Object.entries(tempImages).forEach(([blobUrl, base64]) => {
+        finalContent = finalContent.replaceAll(blobUrl, base64);
+        if (finalImageUrl === blobUrl) finalImageUrl = base64;
+      });
+
+      // 1. Upload Featured Image to Supabase if it's a Base64 string
+      if (finalImageUrl.startsWith('data:')) {
+        const blob = dataURItoBlob(finalImageUrl);
+        if (blob) {
+          const url = await uploadImage(blob, 'featured.jpg');
+          if (url) finalImageUrl = url;
+        }
       }
-    };
 
-    onSubmit(article);
+      // 2. Extract and Upload all inline images
+      const base64Regex = /src="(data:image\/[^;]+;base64,[^"]+)"/g;
+      let match;
+      const uploadedMap: Record<string, string> = {};
+
+      while ((match = base64Regex.exec(finalContent)) !== null) {
+        const base64 = match[1];
+        if (!uploadedMap[base64]) {
+          const blob = dataURItoBlob(base64);
+          if (blob) {
+            const url = await uploadImage(blob, 'inline.jpg');
+            if (url) uploadedMap[base64] = url;
+          }
+        }
+      }
+
+      // Replace base64 strings in content with new Supabase URLs
+      Object.entries(uploadedMap).forEach(([base64, url]) => {
+        finalContent = finalContent.replaceAll(base64, url);
+      });
+
+      const articleToSave: Omit<Article, 'id'> = {
+        title,
+        content: formatContentToHtml(finalContent),
+        excerpt,
+        category,
+        imageUrl: finalImageUrl,
+        author: selectedAuthor,
+        publishedAt: initialData?.publishedAt || new Date().toISOString(),
+        readTime: calculateReadTime(),
+        views: initialData?.views || 0,
+        isBreaking,
+        isPremium,
+        seo: {
+          metaTitle: seoTitle,
+          metaDescription: seoDescription,
+          slug,
+          keywords: keywords.split(',').map(k => k.trim())
+        }
+      };
+
+      // 3. Save Article to Supabase Database
+      const savedArticle = await saveArticle(articleToSave, initialData?.id);
+
+      if (savedArticle) {
+        onSubmit(savedArticle);
+      } else {
+        alert("Erreur lors de la sauvegarde de l'article.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Une erreur inattendue s'est produite.");
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   return (

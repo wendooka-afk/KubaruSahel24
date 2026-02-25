@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import AdminLayout from '../../../components/AdminLayout';
 import { Article, Category } from '../../../types';
 import { Plus, Trash2, Edit, Search, Filter, ChevronLeft, ChevronRight, X, Eye } from 'lucide-react';
+import { deleteArticle } from '../../../lib/api';
 
 interface ArticlesListPageProps {
   articles: Article[];
@@ -20,6 +21,7 @@ const ArticlesListPage: React.FC<ArticlesListPageProps> = ({ articles, onNavigat
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filtered articles
   const filteredArticles = useMemo(() => {
@@ -58,11 +60,21 @@ const ArticlesListPage: React.FC<ArticlesListPageProps> = ({ articles, onNavigat
     setSelectedIds(newSelected);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedIds.size} article(s) ?`)) {
-      selectedIds.forEach(id => onDelete(id));
-      setSelectedIds(new Set());
+      setIsDeleting(true);
+      try {
+        for (const id of selectedIds) {
+          const success = await deleteArticle(id);
+          if (success) onDelete(id);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSelectedIds(new Set());
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -251,9 +263,14 @@ const ArticlesListPage: React.FC<ArticlesListPageProps> = ({ articles, onNavigat
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
-                              onDelete(article.id);
+                              try {
+                                const success = await deleteArticle(article.id);
+                                if (success) onDelete(article.id);
+                              } catch (err) {
+                                console.error(err);
+                              }
                             }
                           }}
                           title="Supprimer"
