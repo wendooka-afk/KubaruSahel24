@@ -27,6 +27,7 @@ export const TRANSLATIONS = {
       society: 'Société',
       culture: 'Culture',
       regions: 'Régions',
+      international: 'International',
       webtv: 'Web TV',
       contact: 'Contact',
       admin: 'Admin',
@@ -110,10 +111,10 @@ export const TRANSLATIONS = {
     },
     about: {
       title: "À propos de Kubaru Sahel 24",
-      tagline: "Le premier média numérique d'information dédié au Septentrion camerounais et au Bassin du Lac Tchad.",
+      tagline: "Le premier média numérique d'information dédié aux 13 pays du Sahel — de l'Atlantique à la mer Rouge.",
       missionTitle: "Notre Mission",
-      missionP1: "Fondé en 2023, Kubaru Sahel 24 est né d'une volonté simple : donner la parole aux régions du Sahel souvent sous-représentées dans les grands médias.",
-      missionP2: "Nous croyons en un journalisme de proximité, rigoureux et constructif. Notre objectif est d'informer les populations de Maroua, Garoua, Ngaoundéré, mais aussi de N'Djamena.",
+      missionP1: "Fondé en 2023, Kubaru Sahel 24 est né d'une volonté simple : donner la parole aux régions du Sahel souvent sous-représentées dans les grands médias. Notre couverture s'étend aux 13 pays de la bande sahélienne.",
+      missionP2: "Nous croyons en un journalisme de proximité, rigoureux et constructif. Notre objectif est d'informer les populations du Sénégal, de la Mauritanie, du Mali, du Burkina Faso, du Niger, du Nigeria, du Tchad, du Cameroun, de la République centrafricaine, du Soudan, de l'Érythrée, de l'Éthiopie et de Djibouti.",
       values: {
         verified: "Information Vérifiée",
         verifiedDesc: "Lutte contre les fake news",
@@ -121,14 +122,14 @@ export const TRANSLATIONS = {
         independenceDesc: "Éditoriale et financière",
         proximity: "Proximité",
         proximityDesc: "Au cœur des communautés",
-        regional: "Régional",
-        regionalDesc: "Focus Sahel & Lac Tchad"
+        regional: "Panafricain",
+        regionalDesc: "13 pays du Sahel couverts"
       },
       historyTitle: "Notre Histoire",
-      historyP1: "Tout a commencé par un constat : l'actualité du 'Grand Nord' n'était traitée que sous l'angle sécuritaire.",
-      historyP2: "Aujourd'hui, Kubaru Sahel 24 compte un réseau de correspondants permanents au Cameroun, au Tchad et au Nigeria.",
+      historyP1: "Tout a commencé par un constat : l'actualité du Sahel n'était traitée que sous l'angle sécuritaire, et les populations de la région manquaient d'une voix propre.",
+      historyP2: "Aujourd'hui, Kubaru Sahel 24 compte un réseau de correspondants permanents dans 13 pays sahéliens, de Dakar à Djibouti.",
       who: "Qui sommes-nous ?",
-      whoDesc: "Une équipe de passionnés engagés pour le développement de la région."
+      whoDesc: "Une équipe de passionnés engagés pour l'information et le développement de toute la bande sahélienne."
     },
     newsletter_page: {
       title: "La Matinale du Sahel",
@@ -173,7 +174,7 @@ export const TRANSLATIONS = {
       s3_text: "Tout litige est soumis au droit camerounais."
     },
     footer: {
-      brandDesc: "Le premier média numérique d'information pour le Septentrion camerounais et le Bassin du Lac Tchad.",
+      brandDesc: "Le premier média numérique d'information dédié aux 13 pays du Sahel — de l'Atlantique à la mer Rouge.",
       usefulLinks: 'Liens Utiles',
       journalists: 'Nos Journalistes',
       privacy: 'Politique de confidentialité',
@@ -233,7 +234,8 @@ export const TRANSLATIONS = {
       'Culture': 'Culture',
       'Régions': 'Régions',
       'Sport': 'Sport',
-      'Tech': 'Tech'
+      'Tech': 'Tech',
+      'International': 'International'
     }
   },
   en: {
@@ -264,6 +266,7 @@ export const TRANSLATIONS = {
       society: 'Society',
       culture: 'Culture',
       regions: 'Regions',
+      international: 'International',
       webtv: 'Web TV',
       contact: 'Contact',
       admin: 'Admin',
@@ -347,10 +350,10 @@ export const TRANSLATIONS = {
     },
     about: {
       title: "About Kubaru Sahel 24",
-      tagline: "The leading digital news media dedicated to Northern Cameroon and the Lake Chad Basin.",
+      tagline: "The leading digital news media dedicated to the 13 Sahel countries — from the Atlantic to the Red Sea.",
       missionTitle: "Our Mission",
-      missionP1: "Founded in 2023, Kubaru Sahel 24 was born from a simple desire: to give a voice to Sahel regions often under-represented in major media.",
-      missionP2: "We believe in proximity journalism, rigorous and constructive. Our goal is to inform the populations of Maroua, Garoua, Ngaoundéré, and N'Djamena.",
+      missionP1: "Founded in 2023, Kubaru Sahel 24 was born from a simple desire: to give a voice to Sahel regions often under-represented in major media. Our coverage spans all 13 countries of the Sahel belt.",
+      missionP2: "We believe in proximity journalism, rigorous and constructive. Our goal is to inform populations across Senegal, Mauritania, Mali, Burkina Faso, Niger, Nigeria, Chad, Cameroon, Central African Republic, Sudan, Eritrea, Ethiopia, and Djibouti.",
       values: {
         verified: "Verified Information",
         verifiedDesc: "Fighting fake news",
@@ -358,14 +361,14 @@ export const TRANSLATIONS = {
         independenceDesc: "Editorial and financial",
         proximity: "Proximity",
         proximityDesc: "At the heart of communities",
-        regional: "Regional",
-        regionalDesc: "Focus Sahel & Lake Chad"
+        regional: "Pan-African",
+        regionalDesc: "13 Sahel countries covered"
       },
       historyTitle: "Our History",
-      historyP1: "It all started with an observation: news from the 'Far North' was only treated from a security perspective.",
-      historyP2: "Today, Kubaru Sahel 24 has a network of permanent correspondents in Cameroon, Chad, and Nigeria.",
+      historyP1: "It all started with an observation: Sahel news was only treated from a security perspective, and local populations lacked their own voice.",
+      historyP2: "Today, Kubaru Sahel 24 has a network of permanent correspondents across 13 Sahel countries, from Dakar to Djibouti.",
       who: "Who are we?",
-      whoDesc: "A team of enthusiasts committed to the region's development."
+      whoDesc: "A team of enthusiasts committed to information and development across the entire Sahel belt."
     },
     newsletter_page: {
       title: "Sahel Morning Brief",
@@ -410,7 +413,7 @@ export const TRANSLATIONS = {
       s3_text: "Any dispute is subject to Cameroonian law."
     },
     footer: {
-      brandDesc: "The leading digital news media for Northern Cameroon and the Lake Chad Basin.",
+      brandDesc: "The leading digital news media for the 13 Sahel countries — from the Atlantic to the Red Sea.",
       usefulLinks: 'Useful Links',
       journalists: 'Our Team',
       privacy: 'Privacy Policy',
@@ -470,7 +473,8 @@ export const TRANSLATIONS = {
       'Culture': 'Culture',
       'Régions': 'Regions',
       'Sport': 'Sport',
-      'Tech': 'Tech'
+      'Tech': 'Tech',
+      'International': 'International'
     }
   }
 };

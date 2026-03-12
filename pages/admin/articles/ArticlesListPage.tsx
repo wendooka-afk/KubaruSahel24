@@ -13,7 +13,7 @@ interface ArticlesListPageProps {
 }
 
 const ITEMS_PER_PAGE = 10;
-const CATEGORIES: Category[] = ['Politique', 'Économie', 'Société', 'Culture', 'Régions', 'Sport', 'Tech'];
+const CATEGORIES: Category[] = ['Politique', 'Économie', 'Société', 'Culture', 'International', 'Régions', 'Sport', 'Tech'];
 
 const ArticlesListPage: React.FC<ArticlesListPageProps> = ({ articles, onNavigate, onLogout, onDelete, onEdit }) => {
   const [searchQuery, setSearchQuery] = useState('');

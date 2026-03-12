@@ -14,7 +14,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({ articles }) => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState<Category>('Politique');
 
-    const categoriesList: Category[] = ['Politique', 'Économie', 'Société', 'Culture', 'Régions', 'Sport', 'Tech'];
+    const categoriesList: Category[] = ['Politique', 'Économie', 'Société', 'Culture', 'International', 'Régions', 'Sport', 'Tech'];
 
     const filteredArticles = useMemo(() => {
         return articles

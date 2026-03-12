@@ -1,5 +1,5 @@
 
-export type Category = 'Politique' | 'Économie' | 'Société' | 'Culture' | 'Régions' | 'Sport' | 'Tech';
+export type Category = 'Politique' | 'Économie' | 'Société' | 'Culture' | 'Régions' | 'Sport' | 'Tech' | 'International';
 
 export type WebTVCategory = 
   | 'Journal Télévisé' 

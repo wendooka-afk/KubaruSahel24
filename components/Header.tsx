@@ -18,11 +18,27 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [currentTickerIndex, setCurrentTickerIndex] = useState(0);
+  const [tickerVisible, setTickerVisible] = useState(true);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Rotation du ticker avec fade : change de titre à chaque nouvel article
+  useEffect(() => {
+    if (breakingNews.length <= 1) return;
+    const interval = setInterval(() => {
+      setTickerVisible(false);
+      setTimeout(() => {
+        setCurrentTickerIndex(prev => (prev + 1) % breakingNews.length);
+        setTickerVisible(true);
+      }, 400); // durée du fade-out
+    }, 7000); // 7 secondes par titre
+    return () => clearInterval(interval);
+  }, [breakingNews.length]);
 
   const menuItems = [
     { label: t('nav.home'), path: '/', isActive: location.pathname === '/' },
@@ -30,6 +46,7 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
     { label: t('nav.economy'), path: `/category/${slugify('Économie')}`, isActive: location.pathname.includes(slugify('Économie')) },
     { label: t('nav.society'), path: `/category/${slugify('Société')}`, isActive: location.pathname.includes(slugify('Société')) },
     { label: t('nav.culture'), path: `/category/${slugify('Culture')}`, isActive: location.pathname.includes(slugify('Culture')) },
+    { label: t('nav.international'), path: `/category/${slugify('International')}`, isActive: location.pathname.includes(slugify('International')) },
     { label: t('nav.regions'), path: `/category/${slugify('Régions')}`, isActive: location.pathname.includes(slugify('Régions')) },
     { label: t('nav.webtv'), path: '/webtv', isActive: location.pathname === '/webtv' },
     { label: t('nav.contact'), path: '/contact', isActive: location.pathname === '/contact' },
@@ -42,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
   };
 
   return (
-    <header className={`sticky top-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-lg' : 'border-b border-gray-100'}`}>
+    <header translate="no" className={`sticky top-0 z-50 bg-white transition-all duration-300 ${scrolled ? 'shadow-lg' : 'border-b border-gray-100'}`}>
       {/* Top Bar */}
       <div className="bg-primary text-white text-[10px] md:text-xs py-1.5 hidden md:block">
         <Container size="full">
@@ -162,25 +179,47 @@ const Header: React.FC<HeaderProps> = ({ breakingNews }) => {
         </div>
       </div>
 
-      {/* Breaking News Ticker */}
+      {/* Breaking News Ticker - optimisé bande passante : 1 titre à la fois avec rotation */}
       <div className="bg-primary text-white py-2 overflow-hidden flex items-center relative z-0">
         <div className="bg-secondary text-primary font-black px-4 py-1 ml-4 z-10 text-[10px] uppercase shadow-lg flex-shrink-0 rounded-sm">
           {t('header.live')}
         </div>
-        <div className="whitespace-nowrap animate-marquee flex items-center gap-12 pl-6 w-full font-medium text-sm">
-          {(() => {
-            const limitedNews = breakingNews.slice(0, 3);
-            const duplicatedNews = [...limitedNews, ...limitedNews];
-            return duplicatedNews.map((item, idx) => (
-              <React.Fragment key={`${item.id}-${idx}`}>
-                <Link to={`/${slugify(item.category)}/${item.seo?.slug || slugify(item.title)}`} className="hover:text-secondary transition-colors inline-block">
-                  {item.title}
-                </Link>
-                <span className="text-secondary opacity-50 font-black text-lg">/</span>
-              </React.Fragment>
-            ));
+        <div className="flex-1 overflow-hidden px-6">
+          {breakingNews.length > 0 && (() => {
+            const item = breakingNews[currentTickerIndex];
+            return (
+              <Link
+                key={item.id}
+                to={`/${slugify(item.category)}/${item.seo?.slug || slugify(item.title)}`}
+                className="block font-medium text-sm hover:text-secondary transition-colors"
+                style={{
+                  opacity: tickerVisible ? 1 : 0,
+                  transform: tickerVisible ? 'translateY(0)' : 'translateY(-6px)',
+                  transition: 'opacity 0.4s ease, transform 0.4s ease',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                {item.title}
+              </Link>
+            );
           })()}
         </div>
+        {breakingNews.length > 1 && (
+          <div className="flex-shrink-0 mr-4 flex items-center gap-1">
+            {breakingNews.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => { setCurrentTickerIndex(idx); setTickerVisible(true); }}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  idx === currentTickerIndex ? 'bg-secondary w-4' : 'bg-white/40'
+                }`}
+                aria-label={`Titre ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </header>
   );

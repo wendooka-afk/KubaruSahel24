@@ -8,6 +8,7 @@ export const CATEGORY_COLORS: Record<Category, string> = {
     'Régions': '#4f46e5', // indigo-600
     'Sport': '#dc2626', // red-600
     'Tech': '#0891b2', // cyan-600
+    'International': '#0f766e', // teal-700
 };
 
 export const getCategoryColor = (category: string) => {

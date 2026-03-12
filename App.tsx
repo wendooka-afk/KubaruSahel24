@@ -61,10 +61,20 @@ const AppContent: React.FC = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
 
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [authors, setAuthors] = useState<Record<string, Author>>({});
-  const [comments, setComments] = useState<Comment[]>([]);
+  // Initialiser avec les mocks immédiatement → affichage instantané sans spinner
+  const [articles, setArticles] = useState<Article[]>(
+    language === 'en' ? ARTICLES_EN : ARTICLES_FR
+  );
+  const [videos, setVideos] = useState<Video[]>(
+    language === 'en' ? VIDEOS_EN : VIDEOS_FR
+  );
+  const [authors, setAuthors] = useState<Record<string, Author>>(
+    language === 'en' ? AUTHORS_EN : AUTHORS_FR
+  );
+  const [comments, setComments] = useState<Comment[]>(
+    language === 'en' ? COMMENTS_EN : COMMENTS_FR
+  );
+  // isStorageReady : utilisé uniquement pour déclencher la sauvegarde après chargement
   const [isStorageReady, setIsStorageReady] = useState(false);
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
@@ -75,53 +85,40 @@ const AppContent: React.FC = () => {
     }
   });
 
-  // Fetch data from Supabase on load
+  // Charger Supabase en arrière-plan — met à jour silencieusement
   useEffect(() => {
-    const initData = async () => {
+    const syncFromSupabase = async () => {
       try {
-        // Fetch from Supabase
         const fetchedArticles = await fetchArticles();
         const fetchedAuthorsList = await fetchAuthors();
 
-        // Convert authors array to Record<string, Author>
         const fetchedAuthors: Record<string, Author> = {};
         fetchedAuthorsList.forEach(author => {
           fetchedAuthors[author.id] = author;
         });
 
-        // 1. Appliquer les données
-        // Si Supabase est vide, on charge les mocks par défaut pour l'instant
         if (fetchedArticles.length > 0) {
           setArticles(fetchedArticles);
-        } else {
-          setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
         }
-
         if (Object.keys(fetchedAuthors).length > 0) {
           setAuthors(fetchedAuthors);
-        } else {
-          setAuthors(language === 'en' ? AUTHORS_EN : AUTHORS_FR);
         }
 
-        // For Videos and Comments, we still use local storage or mocks for now 
-        // until they are migrated to Supabase.
+        // Charger vidéos et commentaires depuis IndexedDB
         const dataKey = `data_${STORAGE_VERSION}_${language}`;
         const savedVideos = await loadData('videos', dataKey);
         const savedComments = await loadData('comments', dataKey);
-        setVideos(savedVideos || (language === 'en' ? VIDEOS_EN : VIDEOS_FR));
-        setComments(savedComments || (language === 'en' ? COMMENTS_EN : COMMENTS_FR));
+        if (savedVideos) setVideos(savedVideos);
+        if (savedComments) setComments(savedComments);
 
       } catch (e) {
-        console.error("Critical data fetching error:", e);
-        // Fallback ultime sur les mocks
-        setArticles(language === 'en' ? ARTICLES_EN : ARTICLES_FR);
-        setAuthors(language === 'en' ? AUTHORS_EN : AUTHORS_FR);
+        console.error('Supabase sync error (mocks still in use):', e);
       } finally {
         setIsStorageReady(true);
       }
     };
 
-    initData();
+    syncFromSupabase();
   }, [language]);
 
   // We no longer autosave Articles and Authors to IndexedDB 
@@ -221,17 +218,6 @@ const AppContent: React.FC = () => {
 
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin') && location.pathname !== '/admin/login';
-
-  if (!isStorageReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-primary">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-bold tracking-widest text-sm uppercase animate-pulse">Initialisation...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>

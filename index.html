@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kubaru Sahel 24 | L'actualité du Septentrion et du Lac Tchad</title>
+  <title>Kubaru Sahel 24 | L'information pour les 13 pays du Sahel</title>
   <meta name="description"
-    content="Actualités du Nord-Cameroun (Adamaoua, Nord, Extrême-Nord) et du Bassin du Lac Tchad. Politique, Économie et Société.">
+    content="Actualités des 13 pays du Sahel — Afrique de l'Ouest et Centrale. Politique, Économie, Société, International.">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/favicon.png">
@@ -61,6 +61,7 @@
     .line-clamp-2 {
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -68,6 +69,7 @@
     .line-clamp-3 {
       display: -webkit-box;
       -webkit-line-clamp: 3;
+      line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -195,6 +197,24 @@
       color: #0B2C55;
     }
   </style>
+
+
+  <style>
+    /* Masquer TOTALEMENT la barre Google Translate */
+    .goog-te-banner-frame,
+    .skiptranslate,
+    #goog-gt-tt,
+    .goog-te-balloon-frame,
+    div#goog-gt- { display: none !important; }
+
+    body { top: 0 !important; }
+
+    /* Protéger les éléments UI déjà traduits par notre système */
+    [data-notranslate], .notranslate { font-size: inherit !important; }
+
+    /* Masquer l'icône flottante */
+    .goog-te-gadget { display: none !important; }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -215,5 +235,24 @@
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <!-- Google Translate : widget caché. La traduction est activée via le   -->
+  <!-- cookie googtrans posé par LanguageContext.tsx au changement de langue -->
+  <!-- ─────────────────────────────────────────────────────────────────── -->
+  <div id="google_translate_element" style="display:none;position:absolute;left:-9999px;"></div>
+
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'fr',
+        includedLanguages: 'en,fr',
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript"
+    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+    async defer></script>
 
 </html>

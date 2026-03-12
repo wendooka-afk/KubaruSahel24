@@ -531,7 +531,7 @@ const NewArticlePage: React.FC<NewArticlePageProps> = ({ onNavigate, onLogout, o
                 value={category}
                 onChange={e => setCategory(e.target.value as Category)}
               >
-                {['Politique', 'Économie', 'Société', 'Culture', 'Régions', 'Sport', 'Tech'].map(c => (
+                {['Politique', 'Économie', 'Société', 'Culture', 'International', 'Régions', 'Sport', 'Tech'].map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
